@@ -1,0 +1,31 @@
+name: 'Reference application pipeline jobs'
+description: 'Actions for deploying and testing reference apps'
+runs:
+    using: composite
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Start minikube
+        uses: medyagh/setup-minikube@master
+      - name: Build image
+        run: |
+          export SHELL=/bin/bash
+          eval $(minikube -p minikube docker-env)
+          make docker-build-minikube
+      - name: Enable Ingress
+        run: make enable-ingress 
+      - name: Deploy manifests
+        run: make deploy-manifests
+      - name: Check resources
+        run: |
+          sleep 30        
+          nohup kubectl port-forward svc/ingress-nginx-controller -n ingress-nginx 8080:80 &
+          sleep 10
+          curl 127.0.0.1:8080/service/hello
+      - name: Install k6
+        run: |
+          curl https://github.com/loadimpact/k6/releases/download/v0.26.2/k6-v0.26.2-linux64.tar.gz -L | tar xvz --strip-components 1
+      - name: Start server and run tests
+        run: |
+          cd ../..
+          SERVICE_ENDPOINT="http://localhost:8080/service" ./k6 run ./nft/ramp-up/test.js
