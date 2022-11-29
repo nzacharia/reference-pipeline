@@ -7,24 +7,31 @@ runs:
         uses: actions/checkout@v3
       - name: Start minikube
         uses: medyagh/setup-minikube@master
+        shell: bash
       - name: Build image
         run: |
           export SHELL=/bin/bash
           eval $(minikube -p minikube docker-env)
           make docker-build-minikube
+        shell: bash
       - name: Enable Ingress
         run: make enable-ingress 
+        shell: bash
       - name: Deploy manifests
         run: make deploy-manifests
+        shell: bash
       - name: Check resources
         run: |
           sleep 30        
           nohup kubectl port-forward svc/ingress-nginx-controller -n ingress-nginx 8080:80 &
           sleep 10
           curl 127.0.0.1:8080/service/hello
+        shell: bash
       - name: Install k6
         run: |
           curl https://github.com/loadimpact/k6/releases/download/v0.26.2/k6-v0.26.2-linux64.tar.gz -L | tar xvz --strip-components 1
+        shell: bash
       - name: Start server and run tests
         run: |
           SERVICE_ENDPOINT="http://localhost:8080/service" ./k6 run ./nft/ramp-up/test.js
+        shell: bash
